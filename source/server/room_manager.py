@@ -1,38 +1,84 @@
+import asyncio
+from dataclasses import dataclass
 from datetime import datetime
+from typing import Any, Awaitable, Callable, Dict, List, Optional
+
+
+SendCallable = Callable[[Dict[str, Any]], Awaitable[None]]
+
+
+@dataclass
+class _ClientState:
+    username: str
+    joined_at: datetime
+    send: SendCallable
+
 
 class RoomManager:
     def __init__(self):
-        self.rooms = {}
-    
-    def add_client(self, room_id, client_id, username):
-        if room_id not in self.rooms:
-            self.rooms[room_id] = {}
-        
-        self.rooms[room_id][client_id] = {
-            'username': username,
-            'joined_at': datetime.now()
-        }
-    
-    def remove_client(self, room_id, client_id):
-        if room_id in self.rooms and client_id in self.rooms[room_id]:
-            del self.rooms[room_id][client_id]
-            
-            if len(self.rooms[room_id]) == 0:
-                del self.rooms[room_id]
-    
-    def get_clients_in_room(self, room_id):
-        if room_id in self.rooms:
-            return list(self.rooms[room_id].keys())
-        return []
-    
-    def get_room_users(self, room_id):
-        if room_id in self.rooms:
+        self._rooms: Dict[str, Dict[str, _ClientState]] = {}
+        self._lock = asyncio.Lock()
+
+    async def add_client(self, room_id: str, client_id: str, username: str, send: SendCallable) -> None:
+        async with self._lock:
+            room = self._rooms.setdefault(room_id, {})
+            room[client_id] = _ClientState(username=username, joined_at=datetime.utcnow(), send=send)
+
+    async def remove_client(self, room_id: str, client_id: str) -> bool:
+        async with self._lock:
+            room = self._rooms.get(room_id)
+            if not room or client_id not in room:
+                return False
+
+            del room[client_id]
+            if not room:
+                del self._rooms[room_id]
+            return True
+
+    async def broadcast(self, room_id: str, message: Dict[str, Any], exclude: Optional[str] = None) -> None:
+        async with self._lock:
+            room = self._rooms.get(room_id)
+            if not room:
+                return
+
+            targets = [
+                (cid, state.send)
+                for cid, state in room.items()
+                if cid != exclude
+            ]
+
+        stale_clients: List[str] = []
+        for cid, send in targets:
+            try:
+                await send(message)
+            except Exception:
+                stale_clients.append(cid)
+
+        for cid in stale_clients:
+            await self.remove_client(room_id, cid)
+
+    async def get_clients_in_room(self, room_id: str) -> List[str]:
+        async with self._lock:
+            room = self._rooms.get(room_id)
+            if not room:
+                return []
+            return list(room.keys())
+
+    async def get_room_users(self, room_id: str) -> List[Dict[str, Any]]:
+        async with self._lock:
+            room = self._rooms.get(room_id)
+            if not room:
+                return []
+
             return [
                 {
                     'client_id': cid,
-                    'username': info['username'],
-                    'joined_at': info['joined_at'].isoformat()
+                    'username': state.username,
+                    'joined_at': state.joined_at.isoformat()
                 }
-                for cid, info in self.rooms[room_id].items()
+                for cid, state in room.items()
             ]
-        return []
+
+    async def clear(self) -> None:
+        async with self._lock:
+            self._rooms.clear()
