@@ -1,0 +1,11 @@
+# Core dependencies
+# (Server tự implement socket nên không cần framework)
+
+# Testing dependencies
+websockets>=12.0    # For test scripts
+requests>=2.31.0    # For HTTP testing
+
+# Optional dependencies for advanced features
+# cryptography>=41.0.0  # For encryption (if needed)
+# numpy>=1.24.0         # For audio processing (if needed)
+
