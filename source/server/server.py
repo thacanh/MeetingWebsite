@@ -71,14 +71,16 @@ class UnifiedServer:
             upgrade = headers.get('upgrade', '').lower()
             
             if upgrade == 'websocket':
-                if not await self.websocket_handshake(writer, headers):
+                subprotocol = self.select_subprotocol(path, headers.get('sec-websocket-protocol', ''))
+                if not await self.websocket_handshake(writer, headers, subprotocol):
                     writer.close()
                     await writer.wait_closed()
                     return
-                
+
                 if '/signaling' in path:
                     await self.signaling_handler.handle(reader, writer)
                 elif '/media' in path:
+                    setattr(writer, 'media_subprotocol', subprotocol)
                     await self.media_handler.handle(reader, writer)
                 else:
                     writer.close()
@@ -96,29 +98,50 @@ class UnifiedServer:
             except:
                 pass
     
-    async def websocket_handshake(self, writer, headers):
+    def select_subprotocol(self, path: str, offered: str):
+        if not offered:
+            return None
+
+        candidates = [item.strip() for item in offered.split(',') if item.strip()]
+        if not candidates:
+            return None
+
+        if '/media' in path:
+            for candidate in candidates:
+                if candidate.startswith('media.') or candidate in {'audio', 'video', 'media'}:
+                    return candidate
+
+        return candidates[0]
+
+    async def websocket_handshake(self, writer, headers, subprotocol=None):
         try:
             websocket_key = headers.get('sec-websocket-key', '')
             if not websocket_key:
                 return False
-            
+
             accept_key = base64.b64encode(
                 hashlib.sha1((websocket_key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').encode()).digest()
             ).decode()
             
-            response = (
-                'HTTP/1.1 101 Switching Protocols\r\n'
-                'Upgrade: websocket\r\n'
-                'Connection: Upgrade\r\n'
-                f'Sec-WebSocket-Accept: {accept_key}\r\n'
-                '\r\n'
-            )
-            
-            writer.write(response.encode('utf-8'))
+            response = [
+                'HTTP/1.1 101 Switching Protocols\r\n',
+                'Upgrade: websocket\r\n',
+                'Connection: Upgrade\r\n',
+                f'Sec-WebSocket-Accept: {accept_key}\r\n',
+            ]
+
+            if subprotocol:
+                response.append(f'Sec-WebSocket-Protocol: {subprotocol}\r\n')
+
+            response.append('\r\n')
+
+            payload = ''.join(response)
+
+            writer.write(payload.encode('utf-8'))
             await writer.drain()
-            
+
             return True
-            
+
         except Exception as e:
             return False
 
