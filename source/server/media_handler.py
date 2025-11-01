@@ -105,7 +105,7 @@ class MediaHandler:
             pass
     
     async def forward_media(self, sender_id, room_id, media_type, payload):
-        clients_in_room = self.room_manager.get_clients_in_room(room_id)
+        clients_in_room = await self.room_manager.get_clients_in_room(room_id)
         
         sender_id_bytes = sender_id.encode('utf-8')
         packet = bytearray()
