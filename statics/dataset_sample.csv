@@ -1,0 +1,4 @@
+ts,path,mode,latency_ms,jitter_ms,loss_pct,throughput_kbps,aes_on,key_rotation_s
+2025-10-28,LAN,direct-udp,28,3,0.2,2200,0,0
+2025-10-28,LAN,turn-udp,45,6,0.5,1800,0,0
+2025-10-28,4G,turn-tcp,110,14,1.5,900,1,30

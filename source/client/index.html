@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Call Application</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Video Call System</h1>
+            <p class="subtitle">Network Programming Project</p>
+        </header>
+
+        <!-- Status Bar -->
+        <div class="status-bar" id="statusBar">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Disconnected</span>
+        </div>
+
+        <!-- Join Room Section -->
+        <div class="join-section" id="joinSection">
+            <div class="form-group">
+                <label for="username">Your Name:</label>
+                <input type="text" id="username" placeholder="Enter name..." value="User">
+            </div>
+            <div class="form-group">
+                <label for="roomId">Room Code:</label>
+                <input type="text" id="roomId" placeholder="Enter room code..." value="room1">
+            </div>
+            <div class="form-group">
+                <label for="serverHost">Server Host:</label>
+                <input type="text" id="serverHost" placeholder="localhost or ngrok domain" value="localhost">
+                <small>Example: localhost, abc123.ngrok-free.app</small>
+            </div>
+            <button class="btn btn-primary" onclick="joinRoom()">
+                Join Room
+            </button>
+        </div>
+
+        <!-- Main Content (Hidden initially) -->
+        <div class="main-content" id="mainContent" style="display: none;">
+            
+            <!-- Controls -->
+            <div class="controls">
+                <button class="btn btn-success" id="toggleVideo" onclick="toggleVideo()">
+                    Camera OFF
+                </button>
+                <button class="btn btn-success" id="toggleAudio" onclick="toggleAudio()">
+                    Mic OFF
+                </button>
+                <button class="btn btn-info" onclick="toggleChat()">
+                    Chat
+                </button>
+                <button class="btn btn-danger" onclick="leaveRoom()">
+                    Leave Room
+                </button>
+                <div class="stats" id="stats">
+                    <span>FPS: <span id="fpsCounter">0</span></span>
+                    <span>Users: <span id="userCount">0</span></span>
+                </div>
+            </div>
+
+            <!-- Video Grid and Chat Container -->
+            <div class="content-wrapper">
+                <!-- Video Grid -->
+                <div class="video-section">
+                    <div class="video-grid" id="videoGrid">
+                        <!-- Local Video -->
+                        <div class="video-container local-video">
+                            <canvas id="localVideo"></canvas>
+                            <div class="video-label">
+                                <span class="username">You (Local)</span>
+                                <span class="indicators">
+                                    <span class="indicator video-on" id="localVideoIndicator">V</span>
+                                    <span class="indicator audio-on" id="localAudioIndicator">A</span>
+                                </span>
+                            </div>
+                            <div class="video-overlay" id="localOverlay" style="display: none;">
+                                <p>Camera is OFF</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Panel -->
+                <div class="chat-panel" id="chatPanel" style="display: none;">
+                    <div class="chat-header">
+                        <h3>Chat</h3>
+                        <button class="btn-close" onclick="toggleChat()">X</button>
+                    </div>
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- Messages will be added here -->
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" id="chatInput" placeholder="Type message..." 
+                               onkeypress="handleChatKeyPress(event)">
+                        <button onclick="sendChatMessage()">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Network Programming Project - Custom Video Call System</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/websocket.js"></script>
+    <script src="js/media.js"></script>
+    <script src="js/chat.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
